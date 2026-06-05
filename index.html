@@ -7,6 +7,31 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Lora:ital,wght@0,400;0,500;1,400&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  <script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+  import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc }
+    from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCP3V_FwVykga-ICtyVFwF383WrEVJlhrw",
+    authDomain: "fheverything.firebaseapp.com",
+    projectId: "fheverything",
+    storageBucket: "fheverything.firebasestorage.app",
+    messagingSenderId: "617128229140",
+    appId: "1:617128229140:web:f7d10aeef4cf1f7d732a01"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // Expose to the Babel script via window
+  window._db = db;
+  window._collection = collection;
+  window._addDoc = addDoc;
+  window._getDocs = getDocs;
+  window._deleteDoc = deleteDoc;
+  window._doc = doc;
+  </script>
   <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -472,40 +497,32 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useRef } = React;
-
 // ─── STORAGE ─────────────────────────────────────────────────────────────────
-// Using localStorage. To switch to Firebase:
-// 1. Create project at console.firebase.google.com
-// 2. Add web app, copy firebaseConfig
-// 3. Paste config into FIREBASE_CONFIG below and uncomment Firebase lines
+// Firebase is loaded via the module script tag above the Babel tag.
+// window._db is set there and used here.
 
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-  // Your web app's Firebase configuration
-const firebaseConfig = {
-    apiKey: "AIzaSyCP3V_FwVykga-ICtyVFwF383WrEVJlhrw",
-    authDomain: "fheverything.firebaseapp.com",
-    projectId: "fheverything",
-    storageBucket: "fheverything.firebasestorage.app",
-    messagingSenderId: "617128229140",
-    appId: "1:617128229140:web:f7d10aeef4cf1f7d732a01"
-};
-
-  // Initialize Firebase
-const app = initializeApp(firebaseConfig);
-// const FIREBASE_CONFIG = { apiKey:"...", authDomain:"...", projectId:"...", ... };
-// import { initializeApp } from "https://www.gstatic.com/firebasejs/10.x.x/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "...firebase-firestore...";
-
-const STORAGE_KEY = 'wg_entries_v2';
 const ARCHIVE_KEY = 'wg_archive_v2';
-const loadEntries = () => { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]'); } catch { return []; } };
-const saveEntries = e => localStorage.setItem(STORAGE_KEY, JSON.stringify(e));
 const loadArchive = () => { try { return JSON.parse(localStorage.getItem(ARCHIVE_KEY)||'[]'); } catch { return []; } };
 const saveArchive = a => localStorage.setItem(ARCHIVE_KEY, JSON.stringify(a));
+
+async function loadEntries() {
+  try {
+    const snapshot = await window._getDocs(window._collection(window._db, 'entries'));
+    return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch(e) { console.error('Firestore read failed:', e); return []; }
+}
+
+async function saveEntry(entry) {
+  try {
+    await window._addDoc(window._collection(window._db, 'entries'), entry);
+  } catch(e) { console.error('Firestore write failed:', e); }
+}
+
+async function removeEntryFromDB(id) {
+  try {
+    await window._deleteDoc(window._doc(window._db, 'entries', id));
+  } catch(e) { console.error('Firestore delete failed:', e); }
+}
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 const NAMES = ['EGG','N','J','E','Guest'];
@@ -604,6 +621,9 @@ function Slideshow({entries,onClose,weekLabel}) {
 }
 
 function EmailModal({onClose}) {
+  const optionA = '1. Sign up at emailjs.com (free tier: 200 emails/mo)\n2. Create a template: subject "The Weekly Gathering"\n3. Add the EmailJS script tag to your index.html head\n4. The app calls emailjs.send() every Monday at 7pm\n5. Paste your Service ID + Template ID into the code';
+  const optionB = 'A scheduled GitHub Action runs every Monday at 7pm,\nreads entries from Firestore, and sends via Resend.\nSee the .github/workflows/monday-email.yml file\nwe already built together.';
+
   return (
     <div className="modal-overlay">
       <div className="modal-box">
@@ -613,26 +633,11 @@ function EmailModal({onClose}) {
         </div>
         <div style={{marginBottom:12}}>
           <div style={{fontFamily:"'Courier Prime',monospace",fontSize:10,textTransform:'uppercase',letterSpacing:1,color:'var(--ink-lighter)',marginBottom:6}}>Option A — EmailJS (free, no backend)</div>
-          <div className="modal-code">{`1. Sign up at emailjs.com (free tier: 200 emails/mo)
-2. Create a template with subject "The Weekly Gathering 📖"
-3. Add this to the app's <head>:
-   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
-4. On Monday at 7pm, the app calls:
-   emailjs.send('YOUR_SERVICE_ID','YOUR_TEMPLATE_ID', {
-     entries_count: entries.length,
-     week_label: weekLabel,
-     to_email: 'family@example.com'
-   });
-5. Paste your Service ID + Template ID into the
-   EMAIL_SERVICE_ID / EMAIL_TEMPLATE_ID variables in the code`}</div>
+          <div className="modal-code">{optionA}</div>
         </div>
         <div style={{marginBottom:16}}>
           <div style={{fontFamily:"'Courier Prime',monospace",fontSize:10,textTransform:'uppercase',letterSpacing:1,color:'var(--ink-lighter)',marginBottom:6}}>Option B — GitHub Action (if hosted on GitHub Pages)</div>
-          <div className="modal-code">{`A scheduled GitHub Action runs every Monday at 7pm UTC,
-reads entries from Firestore, and sends via SendGrid or
-Resend (both free tiers). Ask Claude to write the
-.github/workflows/monday-email.yml for you once
-Firebase is set up.`}</div>
+          <div className="modal-code">{optionB}</div>
         </div>
         <button className="modal-close" onClick={onClose}>Got it</button>
       </div>
@@ -853,7 +858,11 @@ function PastView({archive}) {
 // ─── APP ─────────────────────────────────────────────────────────────────────
 function App() {
   const [tab,setTab]=useState('week');
-  const [entries,setEntries]=useState(loadEntries);
+  const [entries,setEntries]=useState([]);
+
+  useEffect(()=>{
+    loadEntries().then(setEntries);
+  },[]);  
   const [archive,setArchive]=useState(loadArchive);
   const [selectedName,setSelectedName]=useState(null);
   const [toast,setToast]=useState(null);
@@ -866,14 +875,17 @@ function App() {
     tick(); const id=setInterval(tick,30000); return()=>clearInterval(id);
   },[]);
 
-  function addEntry(entry) {
-    const updated=[entry,...entries];
-    setEntries(updated); saveEntries(updated);
+  async function addEntry(entry) {
+    await saveEntry(entry);
+    const updated = await loadEntries();
+    setEntries(updated);
     showToast('Added to the scrapbook!');
   }
-  function deleteEntry(id) {
-    const updated=entries.filter(e=>e.id!==id);
-    setEntries(updated); saveEntries(updated);
+
+  async function deleteEntry(id) {
+    await removeEntryFromDB(id);
+    const updated = await loadEntries();
+    setEntries(updated);
     showToast('Entry removed.');
   }
   function archiveWeek() {
