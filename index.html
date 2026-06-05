@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Weekly Gathering — Family Scrapbook</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Lora:ital,wght@0,400;0,500;1,400&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    :root {
+      --cream: #F5F0E8;
+      --parchment: #EDE5D0;
+      --aged: #D9C9A8;
+      --ink: #2C1F0E;
+      --ink-faded: #5C4A32;
+      --ink-lighter: #8B7355;
+      --rust: #8B3A2A;
+      --rust-light: #C4614A;
+      --forest: #3A5A3C;
+      --gold: #B8860B;
+      --gold-light: #D4A017;
+      --tape: rgba(210,190,130,0.45);
+      --shadow: rgba(44,31,14,0.12);
+      --sidebar-w: 320px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body, #root { height: 100%; }
+    body {
+      background-color: #C8B89A;
+      background-image:
+        repeating-linear-gradient(0deg,transparent,transparent 27px,rgba(44,31,14,0.07) 27px,rgba(44,31,14,0.07) 28px),
+        repeating-linear-gradient(90deg,transparent,transparent 27px,rgba(44,31,14,0.03) 27px,rgba(44,31,14,0.03) 28px);
+      font-family:'Lora',Georgia,serif;
+      color:var(--ink);
+      overflow:hidden;
+    }
+
+    /* ── LAYOUT ── */
+    .app-shell {
+      display:flex;
+      flex-direction:column;
+      height:100vh;
+      max-width:1400px;
+      margin:0 auto;
+    }
+
+    /* Header */
+    .notebook-header {
+      background:var(--rust);
+      padding:10px 20px 8px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      box-shadow:0 2px 8px rgba(0,0,0,0.25);
+      position:relative;
+      flex-shrink:0;
+    }
+    .notebook-header::before {
+      content:'';
+      position:absolute;
+      top:0;left:0;right:0;
+      height:4px;
+      background:repeating-linear-gradient(90deg,var(--gold) 0,var(--gold) 8px,var(--rust) 8px,var(--rust) 16px);
+    }
+    .header-title {
+      font-family:'Playfair Display',serif;
+      color:var(--cream);
+      font-size:22px;
+      font-weight:700;
+      line-height:1.2;
+    }
+    .header-subtitle {
+      font-family:'Lora',serif;
+      color:rgba(245,240,232,0.65);
+      font-size:11px;
+      font-style:italic;
+    }
+    .header-right { display:flex; align-items:center; gap:20px; }
+    .header-countdown {
+      text-align:right;
+      font-family:'Courier Prime',monospace;
+      color:var(--cream);
+    }
+    .countdown-label { font-size:9px; opacity:0.7; text-transform:uppercase; letter-spacing:1px; }
+    .countdown-value { font-size:18px; font-weight:700; letter-spacing:2px; }
+    .countdown-sub { font-size:9px; opacity:0.6; }
+
+    /* Tabs row */
+    .tab-row {
+      display:flex;
+      background:var(--parchment);
+      border-bottom:1px solid var(--aged);
+      flex-shrink:0;
+    }
+    .tab-btn {
+      padding:7px 18px;
+      border:none;
+      background:transparent;
+      font-family:'Lora',serif;
+      font-size:12px;
+      color:var(--ink-lighter);
+      cursor:pointer;
+      border-bottom:2px solid transparent;
+      transition:all .18s;
+      white-space:nowrap;
+    }
+    .tab-btn:hover { color:var(--ink); background:rgba(44,31,14,0.04); }
+    .tab-btn.active { color:var(--rust); border-bottom-color:var(--rust); font-weight:500; }
+
+    /* Body splits into sidebar + main */
+    .body-row {
+      display:flex;
+      flex:1;
+      overflow:hidden;
+    }
+
+    /* ── SIDEBAR (add form) ── */
+    .sidebar {
+      width:var(--sidebar-w);
+      flex-shrink:0;
+      background:var(--parchment);
+      border-right:1px solid var(--aged);
+      display:flex;
+      flex-direction:column;
+      overflow-y:auto;
+      position:relative;
+    }
+    /* Spiral rings on sidebar left edge */
+    .spiral-bar {
+      position:absolute;
+      right:0;top:0;bottom:0;
+      width:14px;
+      pointer-events:none;
+    }
+    .sidebar-inner { padding:16px 20px 20px; }
+
+    .sidebar-heading {
+      font-family:'Playfair Display',serif;
+      font-size:16px;
+      font-style:italic;
+      color:var(--rust);
+      margin-bottom:3px;
+    }
+    .sidebar-meta {
+      font-family:'Courier Prime',monospace;
+      font-size:10px;
+      color:var(--ink-lighter);
+      margin-bottom:14px;
+    }
+
+    /* Name selector */
+    .name-selector {
+      display:flex;
+      gap:6px;
+      flex-wrap:wrap;
+      margin-bottom:14px;
+    }
+    .name-btn {
+      padding:5px 13px;
+      border:1px solid var(--aged);
+      border-radius:20px;
+      background:var(--cream);
+      font-family:'Courier Prime',monospace;
+      font-size:12px;
+      color:var(--ink-faded);
+      cursor:pointer;
+      transition:all .18s;
+    }
+    .name-btn:hover { border-color:var(--rust-light); color:var(--rust); }
+    .name-btn.active { background:var(--rust); color:var(--cream); border-color:var(--rust); }
+
+    /* Type pills */
+    .type-toggle { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; }
+    .type-btn {
+      padding:4px 11px;
+      border:1px solid var(--aged);
+      border-radius:20px;
+      background:var(--cream);
+      font-family:'Lora',serif;
+      font-size:11.5px;
+      color:var(--ink-faded);
+      cursor:pointer;
+      transition:all .18s;
+    }
+    .type-btn:hover { border-color:var(--rust-light); color:var(--rust); }
+    .type-btn.active { background:var(--rust); color:var(--cream); border-color:var(--rust); }
+
+    .form-label {
+      display:block;
+      font-family:'Courier Prime',monospace;
+      font-size:10px;
+      text-transform:uppercase;
+      letter-spacing:1px;
+      color:var(--ink-lighter);
+      margin-bottom:4px;
+    }
+    .form-row { margin-bottom:11px; }
+    .form-input, .form-textarea {
+      width:100%;
+      padding:7px 10px;
+      background:var(--cream);
+      border:1px solid var(--aged);
+      border-radius:2px;
+      font-family:'Lora',serif;
+      font-size:13px;
+      color:var(--ink);
+      outline:none;
+      transition:border-color .2s;
+    }
+    .form-input:focus, .form-textarea:focus {
+      border-color:var(--rust-light);
+      box-shadow:0 0 0 2px rgba(139,58,42,0.1);
+    }
+    .form-textarea { resize:vertical; min-height:60px; }
+
+    .submit-btn {
+      background:var(--rust);
+      color:var(--cream);
+      border:none;
+      padding:9px 0;
+      border-radius:2px;
+      font-family:'Playfair Display',serif;
+      font-size:14px;
+      cursor:pointer;
+      letter-spacing:.5px;
+      transition:background .2s;
+      width:100%;
+    }
+    .submit-btn:hover { background:var(--rust-light); }
+    .submit-btn:disabled { opacity:.4; cursor:default; }
+
+    .img-upload-preview {
+      width:100%;
+      max-height:100px;
+      object-fit:cover;
+      border-radius:2px;
+      border:1px solid var(--aged);
+      margin-top:6px;
+    }
+
+    /* ── MAIN CONTENT AREA ── */
+    .main-area {
+      flex:1;
+      overflow-y:auto;
+      background:var(--cream);
+      display:flex;
+      flex-direction:column;
+    }
+    .main-inner { padding:18px 22px; flex:1; }
+
+    .section-heading {
+      font-family:'Playfair Display',serif;
+      font-size:18px;
+      font-style:italic;
+      color:var(--rust);
+      margin-bottom:4px;
+      border-bottom:1px solid var(--aged);
+      padding-bottom:5px;
+    }
+    .section-meta {
+      font-family:'Courier Prime',monospace;
+      font-size:10px;
+      color:var(--ink-lighter);
+      margin-bottom:14px;
+    }
+
+    /* Entries grid */
+    .entries-grid {
+      display:grid;
+      grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
+      gap:14px;
+    }
+
+    .entry-card {
+      background:#FAFAF5;
+      border:1px solid var(--aged);
+      border-radius:2px;
+      padding:12px;
+      position:relative;
+      transition:box-shadow .2s,transform .2s;
+      overflow:hidden;
+    }
+    .entry-card:hover { box-shadow:2px 4px 12px var(--shadow); transform:translateY(-1px); }
+    .entry-card.tape-top::before {
+      content:'';
+      position:absolute;
+      top:-7px;left:50%;
+      transform:translateX(-50%) rotate(-2deg);
+      width:52px;height:18px;
+      background:var(--tape);
+      border:1px solid rgba(180,160,90,0.3);
+    }
+    .entry-card.tape-top { margin-top:9px; }
+
+    .entry-type-badge {
+      font-family:'Courier Prime',monospace;
+      font-size:9px;
+      text-transform:uppercase;
+      letter-spacing:1.5px;
+      padding:2px 7px;
+      border-radius:10px;
+      display:inline-block;
+      margin-bottom:7px;
+    }
+    .badge-screenshot { background:#E8F0E8; color:var(--forest); border:1px solid rgba(58,90,60,0.2); }
+    .badge-link { background:#E8EAF0; color:#3A4A8A; border:1px solid rgba(58,74,138,0.2); }
+    .badge-quote { background:#F0E8E8; color:var(--rust); border:1px solid rgba(139,58,42,0.2); }
+    .badge-note { background:#F0EDE0; color:var(--gold); border:1px solid rgba(184,134,11,0.2); }
+
+    .entry-img {
+      width:100%;height:110px;
+      object-fit:cover;
+      border-radius:1px;
+      margin-bottom:8px;
+      border:1px solid var(--aged);
+    }
+    .entry-img-placeholder {
+      width:100%;height:70px;
+      background:var(--parchment);
+      border:1px dashed var(--aged);
+      border-radius:1px;
+      display:flex;align-items:center;justify-content:center;
+      font-size:22px;
+      margin-bottom:8px;
+    }
+    .entry-caption {
+      font-family:'Lora',serif;
+      font-size:12px;
+      color:var(--ink);
+      line-height:1.5;
+      margin-bottom:6px;
+    }
+    .entry-link {
+      font-family:'Courier Prime',monospace;
+      font-size:9px;
+      color:#3A4A8A;
+      word-break:break-all;
+      opacity:.8;
+      display:block;
+      margin-bottom:5px;
+    }
+    .entry-quote {
+      font-family:'Playfair Display',serif;
+      font-style:italic;
+      font-size:12px;
+      color:var(--ink-faded);
+      border-left:2px solid var(--rust);
+      padding-left:8px;
+      margin-bottom:6px;
+      line-height:1.5;
+    }
+    .entry-footer {
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-top:7px;
+      padding-top:7px;
+      border-top:1px dashed var(--aged);
+    }
+    .entry-author { font-family:'Courier Prime',monospace; font-size:9px; color:var(--ink-lighter); font-style:italic; }
+    .entry-date { font-family:'Courier Prime',monospace; font-size:9px; color:var(--ink-lighter); }
+    .entry-delete {
+      background:none;border:none;cursor:pointer;
+      color:var(--ink-lighter);font-size:12px;
+      padding:2px 3px;border-radius:2px;
+      transition:color .15s;
+    }
+    .entry-delete:hover { color:var(--rust); }
+
+    /* Empty state */
+    .empty-state { text-align:center; padding:40px 20px; color:var(--ink-lighter); }
+    .empty-state .empty-icon { font-size:36px; margin-bottom:12px; opacity:.6; }
+    .empty-state p { font-family:'Lora',serif; font-style:italic; font-size:13px; line-height:1.6; }
+
+    /* ── SLIDESHOW ── */
+    .slideshow-overlay {
+      position:fixed;
+      top:0;left:0;right:0;bottom:0;
+      background:rgba(20,12,4,0.93);
+      z-index:1000;
+      display:flex;flex-direction:column;
+      align-items:center;justify-content:center;
+      padding:20px;
+    }
+    .slideshow-slide {
+      background:var(--cream);
+      max-width:700px;width:100%;
+      min-height:440px;
+      border-radius:4px;
+      padding:44px 44px 36px;
+      position:relative;
+      display:flex;flex-direction:column;justify-content:center;
+      box-shadow:0 20px 60px rgba(0,0,0,0.5);
+    }
+    .slideshow-slide::before {
+      content:'';position:absolute;
+      top:0;left:0;right:0;height:5px;
+      background:var(--rust);
+    }
+    .slide-number { position:absolute;bottom:14px;right:18px;font-family:'Courier Prime',monospace;font-size:10px;color:var(--ink-lighter); }
+    .slide-img { max-height:260px;max-width:100%;object-fit:contain;border-radius:2px;margin:14px auto;display:block;border:1px solid var(--aged); }
+    .slide-quote { font-family:'Playfair Display',serif;font-style:italic;font-size:22px;color:var(--ink);text-align:center;line-height:1.6;margin:16px 0; }
+    .slide-caption { font-family:'Lora',serif;font-size:14px;color:var(--ink-faded);line-height:1.6;text-align:center; }
+    .slide-type-label { font-family:'Courier Prime',monospace;font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--rust);margin-bottom:14px; }
+    .slide-author-tag { font-family:'Courier Prime',monospace;font-size:11px;color:var(--ink-lighter);font-style:italic; }
+    .slideshow-controls { display:flex;gap:10px;align-items:center;margin-top:16px; }
+    .slide-ctrl-btn { background:var(--cream);border:none;padding:9px 20px;border-radius:2px;font-family:'Playfair Display',serif;font-size:13px;cursor:pointer;color:var(--ink); }
+    .slide-ctrl-btn:hover { background:var(--parchment); }
+    .slide-ctrl-btn:disabled { opacity:.35;cursor:default; }
+    .slide-ctrl-btn.close { background:var(--rust);color:var(--cream); }
+    .slide-ctrl-btn.close:hover { background:var(--rust-light); }
+    .slide-counter { font-family:'Courier Prime',monospace;font-size:12px;color:rgba(245,240,232,0.55); }
+
+    /* Past weeks */
+    .week-accordion { border:1px solid var(--aged);border-radius:3px;margin-bottom:10px;overflow:hidden; }
+    .week-accordion-header {
+      background:var(--parchment);padding:11px 14px;
+      display:flex;justify-content:space-between;align-items:center;
+      cursor:pointer;font-family:'Playfair Display',serif;font-size:14px;color:var(--ink);
+      transition:background .15s;
+    }
+    .week-accordion-header:hover { background:var(--aged); }
+    .week-accordion-meta { font-family:'Courier Prime',monospace;font-size:10px;color:var(--ink-lighter); }
+    .week-accordion-body { padding:14px;background:var(--cream);border-top:1px solid var(--aged); }
+
+    .tag-count { display:inline-block;background:var(--parchment);border:1px solid var(--aged);border-radius:20px;font-family:'Courier Prime',monospace;font-size:9px;padding:1px 7px;color:var(--ink-lighter);margin-left:5px; }
+
+    .collection-btn {
+      background:var(--forest);color:var(--cream);border:none;
+      padding:8px 16px;border-radius:2px;
+      font-family:'Playfair Display',serif;font-size:13px;
+      cursor:pointer;letter-spacing:.5px;
+      transition:background .2s;display:inline-flex;align-items:center;gap:6px;
+    }
+    .collection-btn:hover { background:#2D4A2F; }
+
+    /* Toast */
+    .toast {
+      position:fixed;bottom:22px;right:22px;
+      background:var(--forest);color:var(--cream);
+      font-family:'Courier Prime',monospace;font-size:12px;
+      padding:10px 18px;border-radius:3px;
+      box-shadow:0 4px 16px rgba(0,0,0,0.3);
+      z-index:2000;animation:slideUp .25s ease;
+    }
+    @keyframes slideUp { from{transform:translateY(10px);opacity:0} to{transform:translateY(0);opacity:1} }
+
+    /* Email modal */
+    .modal-overlay {
+      position:fixed;top:0;left:0;right:0;bottom:0;
+      background:rgba(20,12,4,0.7);z-index:900;
+      display:flex;align-items:center;justify-content:center;padding:20px;
+    }
+    .modal-box {
+      background:var(--cream);border-radius:4px;
+      max-width:480px;width:100%;padding:28px 28px 24px;
+      border-top:4px solid var(--rust);
+      box-shadow:0 16px 48px rgba(0,0,0,0.4);
+    }
+    .modal-title { font-family:'Playfair Display',serif;font-size:18px;color:var(--rust);margin-bottom:8px; }
+    .modal-body { font-family:'Lora',serif;font-size:13px;color:var(--ink-faded);line-height:1.65;margin-bottom:16px; }
+    .modal-code { background:var(--parchment);border:1px solid var(--aged);border-radius:3px;padding:12px 14px;font-family:'Courier Prime',monospace;font-size:11px;color:var(--ink);white-space:pre-wrap;word-break:break-all;margin-bottom:14px; }
+    .modal-close { background:var(--rust);color:var(--cream);border:none;padding:8px 20px;border-radius:2px;font-family:'Playfair Display',serif;font-size:13px;cursor:pointer; }
+    .modal-close:hover { background:var(--rust-light); }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+// ─── STORAGE ─────────────────────────────────────────────────────────────────
+// Using localStorage. To switch to Firebase:
+// 1. Create project at console.firebase.google.com
+// 2. Add web app, copy firebaseConfig
+// 3. Paste config into FIREBASE_CONFIG below and uncomment Firebase lines
+
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+  // Your web app's Firebase configuration
+const firebaseConfig = {
+    apiKey: "AIzaSyCP3V_FwVykga-ICtyVFwF383WrEVJlhrw",
+    authDomain: "fheverything.firebaseapp.com",
+    projectId: "fheverything",
+    storageBucket: "fheverything.firebasestorage.app",
+    messagingSenderId: "617128229140",
+    appId: "1:617128229140:web:f7d10aeef4cf1f7d732a01"
+};
+
+  // Initialize Firebase
+const app = initializeApp(firebaseConfig);
+// const FIREBASE_CONFIG = { apiKey:"...", authDomain:"...", projectId:"...", ... };
+// import { initializeApp } from "https://www.gstatic.com/firebasejs/10.x.x/firebase-app.js";
+import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "...firebase-firestore...";
+
+const STORAGE_KEY = 'wg_entries_v2';
+const ARCHIVE_KEY = 'wg_archive_v2';
+const loadEntries = () => { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]'); } catch { return []; } };
+const saveEntries = e => localStorage.setItem(STORAGE_KEY, JSON.stringify(e));
+const loadArchive = () => { try { return JSON.parse(localStorage.getItem(ARCHIVE_KEY)||'[]'); } catch { return []; } };
+const saveArchive = a => localStorage.setItem(ARCHIVE_KEY, JSON.stringify(a));
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+const NAMES = ['EGG','N','J','E','Guest'];
+
+function getNextMonday() {
+  const now = new Date();
+  const day = now.getDay();
+  const diff = day === 0 ? 1 : (8 - day) % 7 || 7;
+  const next = new Date(now);
+  next.setDate(now.getDate() + diff);
+  next.setHours(19,0,0,0);
+  return next;
+}
+function formatCountdown(ms) {
+  if (ms<=0) return {days:'00',hours:'00',mins:'00'};
+  const s=Math.floor(ms/1000);
+  return { days:String(Math.floor(s/86400)).padStart(2,'0'), hours:String(Math.floor((s%86400)/3600)).padStart(2,'0'), mins:String(Math.floor((s%3600)/60)).padStart(2,'0') };
+}
+function getWeekLabel(d=new Date()) {
+  const day=d.getDay(), diff=d.getDate()-day+(day===0?-6:1);
+  const mon=new Date(new Date(d).setDate(diff));
+  return mon.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+}
+function formatDate(ts) { return new Date(ts).toLocaleDateString('en-US',{month:'short',day:'numeric'}); }
+function getTypeEmoji(t) { return {screenshot:'📷',link:'🔗',quote:'✦',note:'📝'}[t]||'📌'; }
+function tapeTrigger(i) { return i%5===2||i%7===3; }
+
+// ─── COMPONENTS ──────────────────────────────────────────────────────────────
+function Toast({msg,onDone}) {
+  useEffect(()=>{ const t=setTimeout(onDone,2800); return ()=>clearTimeout(t); },[]);
+  return <div className="toast">✓ {msg}</div>;
+}
+
+function EntryCard({entry,index,onDelete}) {
+  return (
+    <div className={`entry-card${tapeTrigger(index)?' tape-top':''}`}>
+      <span className={`entry-type-badge badge-${entry.type}`}>{getTypeEmoji(entry.type)} {entry.type}</span>
+      {entry.type==='screenshot'&&entry.imageData&&<img src={entry.imageData} alt="screenshot" className="entry-img"/>}
+      {entry.type==='screenshot'&&!entry.imageData&&<div className="entry-img-placeholder">📷</div>}
+      {entry.type==='link'&&<>
+        <div className="entry-img-placeholder" style={{height:50,fontSize:18}}>🔗</div>
+        {entry.url&&<a href={entry.url} target="_blank" rel="noreferrer" className="entry-link">{entry.url}</a>}
+      </>}
+      {entry.type==='quote'&&<p className="entry-quote">"{entry.quote}"</p>}
+      {entry.type==='note'&&<div className="entry-img-placeholder" style={{height:50,fontSize:18}}>📝</div>}
+      {entry.caption&&<p className="entry-caption">{entry.caption}</p>}
+      <div className="entry-footer">
+        <span className="entry-author">{entry.author?`— ${entry.author}`:'— anon'}</span>
+        <span className="entry-date">{formatDate(entry.createdAt)}</span>
+        {onDelete&&<button className="entry-delete" onClick={()=>onDelete(entry.id)} title="Remove">✕</button>}
+      </div>
+    </div>
+  );
+}
+
+function Slideshow({entries,onClose,weekLabel}) {
+  const [idx,setIdx]=useState(0);
+  const entry=entries[idx];
+  const prev=()=>setIdx(i=>Math.max(0,i-1));
+  const next=()=>setIdx(i=>Math.min(entries.length-1,i+1));
+  useEffect(()=>{
+    const h=e=>{ if(e.key==='ArrowRight')next(); if(e.key==='ArrowLeft')prev(); if(e.key==='Escape')onClose(); };
+    window.addEventListener('keydown',h); return()=>window.removeEventListener('keydown',h);
+  },[idx]);
+  if(!entry) return null;
+  return (
+    <div className="slideshow-overlay">
+      <div style={{textAlign:'center',marginBottom:12}}>
+        <div style={{fontFamily:"'Playfair Display',serif",fontSize:16,color:'var(--cream)',fontStyle:'italic',marginBottom:3}}>The Weekly Gathering</div>
+        <div style={{fontFamily:"'Courier Prime',monospace",fontSize:10,color:'rgba(245,240,232,0.45)',letterSpacing:1}}>WEEK OF {weekLabel.toUpperCase()}</div>
+      </div>
+      <div className="slideshow-slide">
+        <div className="slide-type-label">{getTypeEmoji(entry.type)} {entry.type}</div>
+        {entry.type==='screenshot'&&entry.imageData&&<img src={entry.imageData} alt="screenshot" className="slide-img"/>}
+        {entry.type==='link'&&<>
+          <div style={{textAlign:'center',fontSize:42,marginBottom:10}}>🔗</div>
+          {entry.url&&<a href={entry.url} target="_blank" rel="noreferrer" style={{display:'block',textAlign:'center',fontFamily:"'Courier Prime',monospace",fontSize:11,color:'#3A4A8A',marginBottom:10,wordBreak:'break-all'}}>{entry.url}</a>}
+        </>}
+        {entry.type==='quote'&&<p className="slide-quote">"{entry.quote}"</p>}
+        {entry.type==='note'&&<div style={{textAlign:'center',fontSize:38,marginBottom:10}}>📝</div>}
+        {entry.caption&&<p className="slide-caption">{entry.caption}</p>}
+        <div style={{textAlign:'center',marginTop:16}}>
+          <div className="slide-author-tag">Brought by {entry.author||'a mystery contributor'}</div>
+        </div>
+        <div className="slide-number">{idx+1} / {entries.length}</div>
+      </div>
+      <div className="slideshow-controls">
+        <button className="slide-ctrl-btn" onClick={prev} disabled={idx===0}>← Prev</button>
+        <span className="slide-counter">{idx+1} of {entries.length}</span>
+        <button className="slide-ctrl-btn" onClick={next} disabled={idx===entries.length-1}>Next →</button>
+        <button className="slide-ctrl-btn close" onClick={onClose}>✕ Close</button>
+      </div>
+      <div style={{marginTop:8,fontFamily:"'Courier Prime',monospace",fontSize:9,color:'rgba(245,240,232,0.35)'}}>Arrow keys to navigate · Esc to close</div>
+    </div>
+  );
+}
+
+function EmailModal({onClose}) {
+  return (
+    <div className="modal-overlay">
+      <div className="modal-box">
+        <div className="modal-title">📧 Monday 7pm email</div>
+        <div className="modal-body">
+          Pure front-end apps can't send email on their own — but here are two clean options to wire this up:
+        </div>
+        <div style={{marginBottom:12}}>
+          <div style={{fontFamily:"'Courier Prime',monospace",fontSize:10,textTransform:'uppercase',letterSpacing:1,color:'var(--ink-lighter)',marginBottom:6}}>Option A — EmailJS (free, no backend)</div>
+          <div className="modal-code">{`1. Sign up at emailjs.com (free tier: 200 emails/mo)
+2. Create a template with subject "The Weekly Gathering 📖"
+3. Add this to the app's <head>:
+   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+4. On Monday at 7pm, the app calls:
+   emailjs.send('YOUR_SERVICE_ID','YOUR_TEMPLATE_ID', {
+     entries_count: entries.length,
+     week_label: weekLabel,
+     to_email: 'family@example.com'
+   });
+5. Paste your Service ID + Template ID into the
+   EMAIL_SERVICE_ID / EMAIL_TEMPLATE_ID variables in the code`}</div>
+        </div>
+        <div style={{marginBottom:16}}>
+          <div style={{fontFamily:"'Courier Prime',monospace",fontSize:10,textTransform:'uppercase',letterSpacing:1,color:'var(--ink-lighter)',marginBottom:6}}>Option B — GitHub Action (if hosted on GitHub Pages)</div>
+          <div className="modal-code">{`A scheduled GitHub Action runs every Monday at 7pm UTC,
+reads entries from Firestore, and sends via SendGrid or
+Resend (both free tiers). Ask Claude to write the
+.github/workflows/monday-email.yml for you once
+Firebase is set up.`}</div>
+        </div>
+        <button className="modal-close" onClick={onClose}>Got it</button>
+      </div>
+    </div>
+  );
+}
+
+// ─── SIDEBAR FORM ─────────────────────────────────────────────────────────────
+function Sidebar({selectedName,setSelectedName,onAdd,weekLabel,entryCount}) {
+  const [type,setType]=useState('screenshot');
+  const [caption,setCaption]=useState('');
+  const [url,setUrl]=useState('');
+  const [quote,setQuote]=useState('');
+  const [imageData,setImageData]=useState(null);
+  const [imgPreview,setImgPreview]=useState(null);
+  const fileRef=useRef();
+
+  function handleImageUpload(e) {
+    const file=e.target.files[0]; if(!file) return;
+    const reader=new FileReader();
+    reader.onload=ev=>{ setImageData(ev.target.result); setImgPreview(ev.target.result); };
+    reader.readAsDataURL(file);
+  }
+
+  function canSubmit() {
+    if(!selectedName) return false;
+    if(type==='quote'&&!quote.trim()) return false;
+    if(type==='link'&&!url.trim()) return false;
+    if(type==='screenshot'&&!imageData) return false;
+    return true;
+  }
+
+  function handleSubmit() {
+    if(!canSubmit()) return;
+    onAdd({ id:Date.now()+Math.random(), type, caption:caption.trim(), author:selectedName,
+      url:url.trim(), quote:quote.trim(), imageData, createdAt:Date.now(), weekLabel });
+    setCaption(''); setUrl(''); setQuote(''); setImageData(null); setImgPreview(null);
+    if(fileRef.current) fileRef.current.value='';
+  }
+
+  return (
+    <div className="sidebar">
+      <div className="sidebar-inner">
+        <div className="sidebar-heading">Add to this week</div>
+        <div className="sidebar-meta">Week of {weekLabel} · {entryCount} entries</div>
+
+        <div className="form-row">
+          <span className="form-label">Who's adding?</span>
+          <div className="name-selector">
+            {NAMES.map(n=>(
+              <button key={n} className={`name-btn${selectedName===n?' active':''}`}
+                onClick={()=>setSelectedName(n===selectedName?null:n)}>{n}</button>
+            ))}
+          </div>
+        </div>
+
+        <div className="form-row">
+          <span className="form-label">What are you sharing?</span>
+          <div className="type-toggle">
+            {['screenshot','link','quote','note'].map(t=>(
+              <button key={t} className={`type-btn${type===t?' active':''}`}
+                onClick={()=>setType(t)}>{getTypeEmoji(t)} {t}</button>
+            ))}
+          </div>
+        </div>
+
+        {type==='screenshot'&&(
+          <div className="form-row">
+            <label className="form-label">Upload image</label>
+            <input type="file" accept="image/*" ref={fileRef} onChange={handleImageUpload}
+              style={{fontFamily:"'Courier Prime',monospace",fontSize:11}} />
+            {imgPreview&&<img src={imgPreview} className="img-upload-preview" alt="preview"/>}
+          </div>
+        )}
+        {type==='link'&&(
+          <div className="form-row">
+            <label className="form-label">URL *</label>
+            <input className="form-input" value={url} onChange={e=>setUrl(e.target.value)} placeholder="https://..."/>
+          </div>
+        )}
+        {type==='quote'&&(
+          <div className="form-row">
+            <label className="form-label">The quote *</label>
+            <textarea className="form-textarea" value={quote} onChange={e=>setQuote(e.target.value)}
+              placeholder="Something worth repeating..."/>
+          </div>
+        )}
+
+        <div className="form-row">
+          <label className="form-label">Caption <span style={{opacity:.6,fontSize:9}}>(optional)</span></label>
+          <textarea className="form-textarea" value={caption} onChange={e=>setCaption(e.target.value)}
+            placeholder="Why are you sharing this?" style={{minHeight:50}}/>
+        </div>
+
+        <button className="submit-btn" onClick={handleSubmit} disabled={!canSubmit()}>
+          {!selectedName ? 'Pick a name first ✦' : 'Paste it in ✦'}
+        </button>
+
+        {!selectedName&&(
+          <div style={{marginTop:10,fontFamily:"'Courier Prime',monospace",fontSize:10,color:'var(--ink-lighter)',fontStyle:'italic',textAlign:'center'}}>
+            Select your name above to see your entries
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── VIEWS ───────────────────────────────────────────────────────────────────
+function ThisWeekView({entries,selectedName,onDelete}) {
+  const visible = selectedName ? entries.filter(e=>e.author===selectedName) : [];
+
+  if(!selectedName) return (
+    <div className="empty-state" style={{paddingTop:80}}>
+      <div className="empty-icon">✦</div>
+      <p>Select your name in the sidebar<br/>to see your contributions this week.</p>
+    </div>
+  );
+
+  return (
+    <div className="main-inner">
+      <div className="section-heading">{selectedName}'s finds this week</div>
+      <div className="section-meta">{visible.length} {visible.length===1?'entry':'entries'}</div>
+      {visible.length===0?(
+        <div className="empty-state">
+          <div className="empty-icon">📖</div>
+          <p>Nothing from {selectedName} yet.<br/>Use the form to leave the first mark.</p>
+        </div>
+      ):(
+        <div className="entries-grid">
+          {visible.map((e,i)=><EntryCard key={e.id} entry={e} index={i} onDelete={onDelete}/>)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function GatheringView({entries,weekLabel,onArchive,onShowEmail}) {
+  const [showSlide,setShowSlide]=useState(false);
+  return (
+    <div className="main-inner">
+      <div className="section-heading">Create the Collection</div>
+      <div className="section-meta">Present what the family found this week · {entries.length} entries total</div>
+      {entries.length===0?(
+        <div className="empty-state">
+          <div className="empty-icon">✦</div>
+          <p>Nothing in the scrapbook yet.<br/>Head back and add some finds.</p>
+        </div>
+      ):(
+        <>
+          <div style={{background:'var(--parchment)',border:'1px solid var(--aged)',borderRadius:4,padding:16,marginBottom:16}}>
+            <p style={{fontFamily:"'Playfair Display',serif",fontSize:14,fontStyle:'italic',color:'var(--ink)',marginBottom:12,lineHeight:1.6}}>
+              {entries.length} {entries.length===1?'thing':'things'} gathered this week. Ready for Monday night?
+            </p>
+            <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+              <button className="collection-btn" onClick={()=>setShowSlide(true)}>📽 Open presentation</button>
+              <button className="collection-btn" onClick={onShowEmail} style={{background:'#8B6914'}}>📧 Email setup</button>
+              <button className="collection-btn" onClick={onArchive} style={{background:'var(--rust)'}}>📚 Seal & archive week</button>
+            </div>
+            <div style={{marginTop:10,fontFamily:"'Courier Prime',monospace",fontSize:10,color:'var(--ink-lighter)',fontStyle:'italic'}}>
+              "Seal & archive" saves everything to past weeks and clears the board.
+            </div>
+          </div>
+          <div className="entries-grid">
+            {entries.map((e,i)=><EntryCard key={e.id} entry={e} index={i} onDelete={null}/>)}
+          </div>
+          {showSlide&&<Slideshow entries={entries} onClose={()=>setShowSlide(false)} weekLabel={weekLabel}/>}
+        </>
+      )}
+    </div>
+  );
+}
+
+function PastView({archive}) {
+  const [openWeek,setOpenWeek]=useState(null);
+  const [slideshowWeek,setSlideshowWeek]=useState(null);
+
+  if(archive.length===0) return (
+    <div className="main-inner">
+      <div className="section-heading">The Archives</div>
+      <div className="section-meta">Past collections, sealed and kept</div>
+      <div className="empty-state">
+        <div className="empty-icon">🗄</div>
+        <p>No archived weeks yet.<br/>After your first gathering, seal the week and it'll live here.</p>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="main-inner">
+      <div className="section-heading">The Archives</div>
+      <div className="section-meta">{archive.length} weeks · click a week to unfurl</div>
+      <div style={{marginTop:14}}>
+        {archive.slice().reverse().map(week=>(
+          <div key={week.label} className="week-accordion">
+            <div className="week-accordion-header" onClick={()=>setOpenWeek(openWeek===week.label?null:week.label)}>
+              <span>Week of {week.label}<span className="tag-count">{week.entries.length}</span></span>
+              <span className="week-accordion-meta">{openWeek===week.label?'▲ fold':'▼ open'}</span>
+            </div>
+            {openWeek===week.label&&(
+              <div className="week-accordion-body">
+                <div style={{marginBottom:10}}>
+                  <button className="collection-btn" onClick={()=>setSlideshowWeek(week)}>📽 Presentation</button>
+                </div>
+                <div className="entries-grid">
+                  {week.entries.map((e,i)=><EntryCard key={e.id} entry={e} index={i} onDelete={null}/>)}
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+      {slideshowWeek&&<Slideshow entries={slideshowWeek.entries} weekLabel={slideshowWeek.label} onClose={()=>setSlideshowWeek(null)}/>}
+    </div>
+  );
+}
+
+// ─── APP ─────────────────────────────────────────────────────────────────────
+function App() {
+  const [tab,setTab]=useState('week');
+  const [entries,setEntries]=useState(loadEntries);
+  const [archive,setArchive]=useState(loadArchive);
+  const [selectedName,setSelectedName]=useState(null);
+  const [toast,setToast]=useState(null);
+  const [countdown,setCountdown]=useState(formatCountdown(0));
+  const [showEmailModal,setShowEmailModal]=useState(false);
+  const weekLabel=getWeekLabel();
+
+  useEffect(()=>{
+    const tick=()=>setCountdown(formatCountdown(getNextMonday()-new Date()));
+    tick(); const id=setInterval(tick,30000); return()=>clearInterval(id);
+  },[]);
+
+  function addEntry(entry) {
+    const updated=[entry,...entries];
+    setEntries(updated); saveEntries(updated);
+    showToast('Added to the scrapbook!');
+  }
+  function deleteEntry(id) {
+    const updated=entries.filter(e=>e.id!==id);
+    setEntries(updated); saveEntries(updated);
+    showToast('Entry removed.');
+  }
+  function archiveWeek() {
+    if(!entries.length) return;
+    const updated=[...archive,{label:weekLabel,entries,archivedAt:Date.now()}];
+    setArchive(updated); saveArchive(updated);
+    setEntries([]); saveEntries([]);
+    showToast('Week sealed! ✦'); setTab('past');
+  }
+  function showToast(msg) { setToast(msg); setTimeout(()=>setToast(null),3000); }
+
+  const tabs=[
+    {id:'week',label:'This Week'},
+    {id:'gather',label:'Create Collection'},
+    {id:'past',label:'Past Weeks'},
+  ];
+
+  return (
+    <div className="app-shell">
+      {/* Header */}
+      <div className="notebook-header">
+        <div>
+          <div className="header-title">The Weekly Gathering</div>
+          <div className="header-subtitle">a family scrapbook, renewed every Monday</div>
+        </div>
+        <div className="header-right">
+          <div className="header-countdown">
+            <div className="countdown-label">Next gathering</div>
+            <div className="countdown-value">{countdown.days}d {countdown.hours}h {countdown.mins}m</div>
+            <div className="countdown-sub">Monday · 7:00 pm</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="tab-row">
+        {tabs.map(t=>(
+          <button key={t.id} className={`tab-btn${tab===t.id?' active':''}`}
+            onClick={()=>setTab(t.id)}>{t.label}</button>
+        ))}
+        <div style={{flex:1}}/>
+        <div style={{padding:'6px 16px',fontFamily:"'Courier Prime',monospace",fontSize:10,color:'var(--ink-lighter)',alignSelf:'center'}}>
+          {entries.length} entries this week
+        </div>
+      </div>
+
+      {/* Body */}
+      <div className="body-row">
+        {/* Sidebar always visible */}
+        <Sidebar
+          selectedName={selectedName}
+          setSelectedName={setSelectedName}
+          onAdd={addEntry}
+          weekLabel={weekLabel}
+          entryCount={entries.length}
+        />
+
+        {/* Main content */}
+        <div className="main-area">
+          {tab==='week'&&<ThisWeekView entries={entries} selectedName={selectedName} onDelete={deleteEntry}/>}
+          {tab==='gather'&&<GatheringView entries={entries} weekLabel={weekLabel} onArchive={archiveWeek} onShowEmail={()=>setShowEmailModal(true)}/>}
+          {tab==='past'&&<PastView archive={archive}/>}
+        </div>
+      </div>
+
+      {showEmailModal&&<EmailModal onClose={()=>setShowEmailModal(false)}/>}
+      {toast&&<Toast msg={toast} onDone={()=>setToast(null)}/>}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
