@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>The Weekly Gathering — Family Scrapbook</title>
+  <title>Family Home Everything — Family Scrapbook</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Lora:ital,wght@0,400;0,500;1,400&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
@@ -591,7 +591,7 @@ function Slideshow({entries,onClose,weekLabel}) {
   return (
     <div className="slideshow-overlay">
       <div style={{textAlign:'center',marginBottom:12}}>
-        <div style={{fontFamily:"'Playfair Display',serif",fontSize:16,color:'var(--cream)',fontStyle:'italic',marginBottom:3}}>The Weekly Gathering</div>
+        <div style={{fontFamily:"'Playfair Display',serif",fontSize:16,color:'var(--cream)',fontStyle:'italic',marginBottom:3}}>Family Home Everything</div>
         <div style={{fontFamily:"'Courier Prime',monospace",fontSize:10,color:'rgba(245,240,232,0.45)',letterSpacing:1}}>WEEK OF {weekLabel.toUpperCase()}</div>
       </div>
       <div className="slideshow-slide">
@@ -621,7 +621,7 @@ function Slideshow({entries,onClose,weekLabel}) {
 }
 
 function EmailModal({onClose}) {
-  const optionA = '1. Sign up at emailjs.com (free tier: 200 emails/mo)\n2. Create a template: subject "The Weekly Gathering"\n3. Add the EmailJS script tag to your index.html head\n4. The app calls emailjs.send() every Monday at 7pm\n5. Paste your Service ID + Template ID into the code';
+  const optionA = '1. Sign up at emailjs.com (free tier: 200 emails/mo)\n2. Create a template: subject "Family Home Everything"\n3. Add the EmailJS script tag to your index.html head\n4. The app calls emailjs.send() every Monday at 7pm\n5. Paste your Service ID + Template ID into the code';
   const optionB = 'A scheduled GitHub Action runs every Monday at 7pm,\nreads entries from Firestore, and sends via Resend.\nSee the .github/workflows/monday-email.yml file\nwe already built together.';
 
   return (
@@ -908,7 +908,7 @@ function App() {
       {/* Header */}
       <div className="notebook-header">
         <div>
-          <div className="header-title">The Weekly Gathering</div>
+          <div className="header-title">Family Home Everything</div>
           <div className="header-subtitle">a family scrapbook, renewed every Monday</div>
         </div>
         <div className="header-right">
